@@ -1,11 +1,13 @@
 using TMPro;
+using Unity.VisualScripting.Antlr3.Runtime;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class DevConsole : MonoBehaviour
 {
     private Scrollbar Scroll;
-    private InputField ConsoleInput;
+    private TMP_InputField ConsoleInput;
+    private TMP_Text ConsoleInputField;
     private TMP_Text ConsoleOutput;
 
     private float ConsoleOutputLength;
@@ -21,9 +23,8 @@ public class DevConsole : MonoBehaviour
 
     private void Resize(bool ScrollDown)
     {
-        float PrevOutputLength = ConsoleOutputLength;
-        ConsoleOutput.fontSize = ConsoleInput.GetComponentInChildren<TMP_Text>().fontSize;
-        ConsoleOutputLength = ConsoleOutput.preferredHeight;
+        float PrevOutputLength = ConsoleOutputLength;        
+        ConsoleOutputLength = ConsoleOutput.GetComponent<TMP_Text>().preferredHeight;
         if (ScrollDown)
         {
             Scroll.value = 0;
@@ -32,7 +33,6 @@ public class DevConsole : MonoBehaviour
         {
             Scroll.value = Scroll.value * ConsoleOutputLength / PrevOutputLength;
         }
-        Debug.Log("ggg");
     }
 
     private void Print(string text)
@@ -64,19 +64,57 @@ public class DevConsole : MonoBehaviour
         Print("[COMMAND] " + text);
     }
 
+    private void Process(string command)
+    {
+        if (ConsoleInput.text.Length > 0)
+        {
+            LogCommand(ConsoleInput.text);
+            ExecuteCommand(ConsoleInput.text);
+            ConsoleInput.text = "";
+        }
+    }
+
+    private void ExecuteCommand(string command)
+    {
+        string[] breakdown = command.Split(" ");
+        string Output = "";
+        switch (breakdown[0])
+        {
+            case "shutdown":
+                Output = "Closing game";
+                #if UNITY_EDITOR                
+                    UnityEditor.EditorApplication.isPlaying = false;
+                #else
+                    Application.Quit();
+                #endif
+                break;
+            default:
+                Output = "Failed to execute command: " + command;
+                break;
+        }
+        Log(Output);
+    }
+
     private void Awake()
     {
         WindowWidth = Screen.width;
         WindowHeight = Screen.height;
+        DontDestroyOnLoad(gameObject);
+        Scroll = gameObject.transform.GetChild(0).GetChild(0).gameObject.GetComponent<Scrollbar>();
+        ConsoleInput = gameObject.transform.GetChild(0).GetChild(1).gameObject.GetComponent<TMP_InputField>();
+        ConsoleInput.onSubmit.AddListener(Process);
+        ConsoleInputField = gameObject.transform.GetChild(0).GetChild(1).GetChild(0).GetChild(1).gameObject.GetComponent<TMP_Text>();
+        ConsoleOutput = gameObject.transform.GetChild(0).GetChild(2).GetChild(0).gameObject.GetComponent<TMP_Text>();        
     }
 
     private void Update()
     {
+        ConsoleOutput.fontSize = ConsoleInputField.fontSize;
         if (WindowWidth != Screen.width || WindowHeight != Screen.height)
-        {
-            Resize(false);
+        {            
             WindowWidth = Screen.width;
             WindowHeight = Screen.height;
+            Resize(false);
         }
     }
 }
