@@ -90,6 +90,7 @@ public class DevConsole : MonoBehaviour
             LogCommand(ConsoleInput.text);
             ExecuteCommand(ConsoleInput.text);
             ConsoleInput.text = "";
+            Resize(true);            
         }
     }
 
