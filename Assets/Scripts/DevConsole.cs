@@ -1,6 +1,8 @@
+using System;
 using TMPro;
 using Unity.VisualScripting.Antlr3.Runtime;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 public class DevConsole : MonoBehaviour
@@ -16,9 +18,25 @@ public class DevConsole : MonoBehaviour
 
     public static bool ConsoleVisibility = false;
 
-    public static void ToggleConsole()
+    public void ToggleConsole()
     {
         ConsoleVisibility = !ConsoleVisibility;
+        if (ConsoleVisibility)
+        {
+            ConsoleInput.Select();
+        }
+        else
+        {
+            EventSystem.current.SetSelectedGameObject(null);
+        }
+    }
+
+    public void IgnoreBackQuote(string text)
+    {
+        if (ConsoleInput.text.Length > 0 && ConsoleInput.text[ConsoleInput.text.Length - 1] == '`') 
+        {
+            ConsoleInput.text = ConsoleInput.text.Substring(0, ConsoleInput.text.Length - 1);
+        }
     }
 
     private void Resize(bool ScrollDown)
@@ -33,6 +51,7 @@ public class DevConsole : MonoBehaviour
         {
             Scroll.value = Scroll.value * ConsoleOutputLength / PrevOutputLength;
         }
+        gameObject.transform.GetChild(0).position = new Vector3(gameObject.transform.GetChild(0).position.x,Mathf.Clamp(gameObject.transform.GetChild(0).position.y,0,Screen.height * 1.45f), gameObject.transform.GetChild(0).position.z);
     }
 
     private void Print(string text)
@@ -103,8 +122,11 @@ public class DevConsole : MonoBehaviour
         Scroll = gameObject.transform.GetChild(0).GetChild(0).gameObject.GetComponent<Scrollbar>();
         ConsoleInput = gameObject.transform.GetChild(0).GetChild(1).gameObject.GetComponent<TMP_InputField>();
         ConsoleInput.onSubmit.AddListener(Process);
+        ConsoleInput.onValueChanged.AddListener(IgnoreBackQuote);
+        ConsoleInput.onFocusSelectAll = false;
         ConsoleInputField = gameObject.transform.GetChild(0).GetChild(1).GetChild(0).GetChild(1).gameObject.GetComponent<TMP_Text>();
-        ConsoleOutput = gameObject.transform.GetChild(0).GetChild(2).GetChild(0).gameObject.GetComponent<TMP_Text>();        
+        ConsoleOutput = gameObject.transform.GetChild(0).GetChild(2).GetChild(0).gameObject.GetComponent<TMP_Text>();
+        Print(gameObject.transform.GetChild(0).position.ToString() + " " + Screen.height);
     }
 
     private void Update()
@@ -115,6 +137,11 @@ public class DevConsole : MonoBehaviour
             WindowWidth = Screen.width;
             WindowHeight = Screen.height;
             Resize(false);
+        }
+        gameObject.transform.GetChild(0).position = new Vector3(gameObject.transform.GetChild(0).position.x, (((Convert.ToInt32(!ConsoleVisibility) * 2) - 1) * Mathf.Min((Mathf.Abs((Convert.ToInt32(!ConsoleVisibility) * Screen.height * 1.5f) - gameObject.transform.GetChild(0).gameObject.GetComponent<RectTransform>().offsetMin.y) * 6 * Time.deltaTime),Mathf.Abs((Convert.ToInt32(!ConsoleVisibility) * Screen.height * 1.5f) - gameObject.transform.GetChild(0).gameObject.GetComponent<RectTransform>().offsetMin.y))) + gameObject.transform.GetChild(0).position.y, gameObject.transform.GetChild(0).position.z);
+        if (Input.GetKeyDown(KeyCode.BackQuote))
+        {
+            ToggleConsole();
         }
     }
 }
